@@ -62,7 +62,7 @@ async function handler(
 
   const triggers = await TriggerResource.listByAgentConfigurationId(
     auth,
-    agentConfiguration.id
+    agentConfigurationId
   );
 
   console.log(triggers);

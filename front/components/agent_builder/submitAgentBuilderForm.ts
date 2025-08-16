@@ -208,7 +208,6 @@ export async function submitAgentBuilderForm({
     }
 
     // Always sync triggers to handle creation, updates, and deletions
-    console.log(formData.triggers);
     const triggerSyncRes = await fetch(
       `/api/w/${owner.sId}/assistant/agent_configurations/${agentConfiguration.sId}/triggers`,
       {

@@ -94,7 +94,7 @@ export class TriggerResource extends BaseResource<TriggerModel> {
 
   static listByAgentConfigurationId(
     auth: Authenticator,
-    agentConfigurationId: number
+    agentConfigurationId: string
   ) {
     return this.baseFetch(auth, {
       where: {
