@@ -22,14 +22,24 @@ export interface GetTriggersResponseBody {
   triggers: LightTriggerType[];
 }
 
-export interface PostTriggerResponseBody {
-  trigger: LightTriggerType;
+export interface PatchTriggersRequestBody {
+  triggers: Array<{
+    name: string;
+    description: string;
+    kind: string;
+    config: any;
+    sId?: string;
+  }>;
+}
+
+export interface PatchTriggersResponseBody {
+  triggers: LightTriggerType[];
 }
 
 async function handler(
   req: NextApiRequest,
   res: NextApiResponse<
-    WithAPIErrorResponse<GetTriggersResponseBody | PostTriggerResponseBody>
+    WithAPIErrorResponse<GetTriggersResponseBody | PatchTriggersResponseBody>
   >,
   auth: Authenticator
 ): Promise<void> {
@@ -50,65 +60,139 @@ async function handler(
     });
   }
 
+  const triggers = await TriggerResource.listByAgentConfigurationId(
+    auth,
+    agentConfiguration.id
+  );
+
+  console.log(triggers);
+
   switch (req.method) {
     case "GET": {
-      const triggers = await TriggerResource.listByAgentConfigurationId(
-        auth,
-        agentConfiguration.id
-      );
-
       return res.status(200).json({
         triggers: triggers.map((trigger) => trigger.toSimpleJSON()),
       });
     }
 
-    case "POST": {
+    case "PATCH": {
       if (!agentConfiguration.canEdit && !auth.isAdmin()) {
         return apiError(req, res, {
           status_code: 403,
           api_error: {
             type: "app_auth_error",
-            message: "Only editors can create triggers for this agent.",
+            message: "Only editors can update triggers for this agent.",
           },
         });
       }
 
-      const bodyValidation = TriggerSchema.decode(req.body);
-      if (isLeft(bodyValidation)) {
-        const pathError = reporter.formatValidationErrors(bodyValidation.left);
+      console.log(req.body, req.body.triggers);
+
+      if (
+        !req.body ||
+        !req.body.triggers ||
+        !Array.isArray(req.body.triggers)
+      ) {
+        console.log("Invalid request body:", req.body);
         return apiError(req, res, {
           status_code: 400,
           api_error: {
             type: "invalid_request_error",
-            message: `Invalid request body: ${pathError}`,
+            message: "Request body must contain a 'triggers' array.",
           },
         });
       }
 
-      const triggerData = bodyValidation.right;
+      const { triggers: requestTriggers } =
+        req.body as PatchTriggersRequestBody;
       const workspace = auth.getNonNullableWorkspace();
 
       try {
-        const sId = generateRandomModelSId();
-        const trigger = await TriggerResource.makeNew(auth, {
-          sId,
-          workspaceId: workspace.id,
-          agentConfigurationId: agentConfiguration.id,
-          name: triggerData.name,
-          description: triggerData.description,
-          kind: triggerData.kind,
-          configuration: triggerData.config || null,
-        });
+        const currentTriggersMap = new Map(triggers.map((t) => [t.sId, t]));
 
-        return res.status(201).json({
-          trigger: trigger.toSimpleJSON(),
+        console.log("Current triggers:", currentTriggersMap);
+        console.log("Request triggers:", requestTriggers);
+
+        const resultTriggers: LightTriggerType[] = [];
+
+        for (const triggerData of requestTriggers) {
+          const bodyValidation = TriggerSchema.decode({
+            name: triggerData.name,
+            description: triggerData.description,
+            kind: triggerData.kind,
+            config: triggerData.config,
+          });
+
+          if (isLeft(bodyValidation)) {
+            const pathError = reporter.formatValidationErrors(
+              bodyValidation.left
+            );
+            return apiError(req, res, {
+              status_code: 400,
+              api_error: {
+                type: "invalid_request_error",
+                message: `Invalid trigger data: ${pathError}`,
+              },
+            });
+          }
+
+          const validatedTrigger = bodyValidation.right;
+
+          if (triggerData.sId && currentTriggersMap.has(triggerData.sId)) {
+            console.log("Updating existing trigger:", triggerData.sId);
+
+            const existingTrigger = currentTriggersMap.get(triggerData.sId)!;
+            const updatedTrigger = await TriggerResource.update(
+              auth,
+              existingTrigger.sId,
+              {
+                name: validatedTrigger.name,
+                description: validatedTrigger.description,
+                kind: validatedTrigger.kind,
+                configuration: validatedTrigger.config || null,
+              }
+            );
+            if (updatedTrigger.isErr()) {
+              return apiError(req, res, {
+                status_code: 500,
+                api_error: {
+                  type: "internal_server_error",
+                  message: "Failed to update trigger.",
+                },
+              });
+            }
+
+            resultTriggers.push(updatedTrigger.value.toSimpleJSON());
+            currentTriggersMap.delete(triggerData.sId);
+          } else {
+            console.log("Creating new trigger with random sId");
+            const sId = generateRandomModelSId();
+            const newTrigger = await TriggerResource.makeNew(auth, {
+              sId,
+              workspaceId: workspace.id,
+              agentConfigurationId: agentConfiguration.sId,
+              name: validatedTrigger.name,
+              description: validatedTrigger.description,
+              kind: validatedTrigger.kind,
+              configuration: validatedTrigger.config || null,
+            });
+            resultTriggers.push(newTrigger.toSimpleJSON());
+          }
+        }
+
+        for (const [, trigger] of currentTriggersMap) {
+          console.log("Deleting unused trigger:", trigger.sId);
+          await trigger.delete(auth);
+        }
+
+        return res.status(200).json({
+          triggers: resultTriggers,
         });
       } catch (error) {
         return apiError(req, res, {
           status_code: 500,
           api_error: {
             type: "internal_server_error",
-            message: "Failed to create trigger.",
+            message: "Failed to sync triggers.",
           },
         });
       }
@@ -120,7 +204,7 @@ async function handler(
         api_error: {
           type: "method_not_supported_error",
           message:
-            "The method passed is not supported, GET or POST is expected.",
+            "The method passed is not supported, GET, POST or PATCH is expected.",
         },
       });
   }

@@ -12,7 +12,6 @@ export type ScheduleConfigType = {
 
 export type TriggerConfigType = ScheduleConfigType;
 
-// Full database representation
 export type TriggerType = {
   id: number;
   sId: string;
@@ -20,7 +19,7 @@ export type TriggerType = {
   name: string;
   description: string;
 
-  agentConfigurationId: AgentConfigurationType["id"];
+  agentConfigurationId: AgentConfigurationType["sId"];
   editor: UserType["id"];
   subscribers: UserType["id"][] | null;
 
@@ -30,7 +29,6 @@ export type TriggerType = {
   customPrompt: string | null;
 };
 
-// Main type for API and UI (what components expect)
 export type LightTriggerType = {
   sId?: string;
   name: string;
@@ -39,19 +37,7 @@ export type LightTriggerType = {
   config: TriggerConfigType;
 };
 
-// Type for API operations (create/update)
-export type CreateTriggerType = {
-  name: string;
-  description: string;
-  kind: TriggerKind;
-  config: TriggerConfigType;
-};
-
-export type UpdateTriggerType = CreateTriggerType;
-
-const TriggerKindCodec = t.keyof({
-  schedule: null,
-});
+const TriggerKindCodec = t.literal("schedule");
 
 const ScheduleConfigSchema = t.type({
   cron: t.string,

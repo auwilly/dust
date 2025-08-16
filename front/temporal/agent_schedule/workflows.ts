@@ -9,7 +9,7 @@ const { runScheduledAgentsActivity } = proxyActivities<typeof activities>({
 
 export async function agentScheduleWorkflow(
   authType: AuthenticatorType,
-  agentConfigurationId: number,
+  agentConfigurationId: string,
   trigger: LightTriggerType
 ) {
   await runScheduledAgentsActivity(authType, agentConfigurationId, trigger);

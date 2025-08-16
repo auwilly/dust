@@ -11,7 +11,6 @@ import type {
 } from "@app/types";
 import { Err, Ok } from "@app/types";
 import { normalizeError } from "@app/types/shared/utils/error_utils";
-import type { CreateTriggerType } from "@app/types/assistant/triggers";
 
 function convertDataSourceConfigurations(
   dataSourceConfigurations: DataSourceViewSelectionConfigurations | null,
@@ -208,142 +207,39 @@ export async function submitAgentBuilderForm({
       }
     }
 
-    if (formData.triggers.length > 0) {
-      if (!agentConfigurationId) {
-        for (const trigger of formData.triggers) {
-          const triggerData: CreateTriggerType = {
+    // Always sync triggers to handle creation, updates, and deletions
+    console.log(formData.triggers);
+    const triggerSyncRes = await fetch(
+      `/api/w/${owner.sId}/assistant/agent_configurations/${agentConfiguration.sId}/triggers`,
+      {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          triggers: formData.triggers.map((trigger) => ({
             name: trigger.name,
             description: trigger.description,
             kind: trigger.kind,
             config: trigger.config,
-          };
+            sId: trigger.sId || undefined,
+          })),
+        }),
+      }
+    );
 
-          const triggerRes = await fetch(
-            `/api/w/${owner.sId}/assistant/agent_configurations/${agentConfiguration.sId}/triggers`,
-            {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-              },
-              body: JSON.stringify(triggerData),
-            }
-          );
-
-          if (!triggerRes.ok) {
-            // Try to extract and show the API error message if available
-            try {
-              const error = await triggerRes.json();
-              return new Err(
-                new Error(
-                  error?.api_error?.message ||
-                    error?.error?.message ||
-                    "An error occurred while creating triggers."
-                )
-              );
-            } catch {
-              return new Err(
-                new Error("An error occurred while creating triggers.")
-              );
-            }
-          }
-        }
-      } else {
-        const currentTriggersRes = await fetch(
-          `/api/w/${owner.sId}/assistant/agent_configurations/${agentConfigurationId}/triggers`
+    if (!triggerSyncRes.ok) {
+      try {
+        const error = await triggerSyncRes.json();
+        return new Err(
+          new Error(
+            error?.api_error?.message ||
+              error?.error?.message ||
+              "An error occurred while syncing triggers."
+          )
         );
-
-        if (!currentTriggersRes.ok) {
-          return new Err(
-            new Error("Failed to fetch current triggers for sync.")
-          );
-        }
-
-        const { triggers: currentTriggers } =
-          (await currentTriggersRes.json()) as {
-            triggers: Array<{
-              sId: string;
-              name: string;
-              description: string;
-              kind: string;
-              config: any;
-            }>;
-          };
-
-        // Create map of current triggers by sId
-        const currentTriggersMap = new Map(
-          currentTriggers.map((t) => [t.sId, t])
-        );
-
-        // Handle form triggers
-        for (const formTrigger of formData.triggers) {
-          if (formTrigger.sId && currentTriggersMap.has(formTrigger.sId)) {
-            // Update existing trigger
-            const triggerData: CreateTriggerType = {
-              name: formTrigger.name,
-              description: formTrigger.description,
-              kind: formTrigger.kind,
-              config: formTrigger.config,
-            };
-
-            const updateRes = await fetch(
-              `/api/w/${owner.sId}/assistant/agent_configurations/${agentConfigurationId}/triggers/${formTrigger.sId}`,
-              {
-                method: "PATCH",
-                headers: {
-                  "Content-Type": "application/json",
-                },
-                body: JSON.stringify(triggerData),
-              }
-            );
-
-            if (!updateRes.ok) {
-              return new Err(
-                new Error(`Failed to update trigger: ${formTrigger.name}`)
-              );
-            }
-
-            currentTriggersMap.delete(formTrigger.sId);
-          } else {
-            const triggerData: CreateTriggerType = {
-              name: formTrigger.name,
-              description: formTrigger.description,
-              kind: formTrigger.kind,
-              config: formTrigger.config,
-            };
-
-            const createRes = await fetch(
-              `/api/w/${owner.sId}/assistant/agent_configurations/${agentConfigurationId}/triggers`,
-              {
-                method: "POST",
-                headers: {
-                  "Content-Type": "application/json",
-                },
-                body: JSON.stringify(triggerData),
-              }
-            );
-
-            if (!createRes.ok) {
-              return new Err(
-                new Error(`Failed to create trigger: ${formTrigger.name}`)
-              );
-            }
-          }
-        }
-
-        for (const [sId, trigger] of currentTriggersMap) {
-          const deleteRes = await fetch(
-            `/api/w/${owner.sId}/assistant/agent_configurations/${agentConfigurationId}/triggers/${sId}`,
-            {
-              method: "DELETE",
-            }
-          );
-
-          if (!deleteRes.ok) {
-            return new Err(
-              new Error(`Failed to delete trigger: ${trigger.name}`)
-            );
-          }
-        }
+      } catch {
+        return new Err(new Error("An error occurred while syncing triggers."));
       }
     }
 

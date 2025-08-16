@@ -20,7 +20,7 @@ export async function createOrUpdateAgentScheduleWorkflow({
   trigger,
 }: {
   authType: AuthenticatorType;
-  agentConfigurationId: number;
+  agentConfigurationId: string;
   trigger: LightTriggerType;
 }): Promise<Result<string, Error>> {
   const client = await getTemporalClientForAgentNamespace();
@@ -74,7 +74,7 @@ export async function deleteAgentScheduleWorkflow({
   triggerId,
 }: {
   authType: AuthenticatorType;
-  agentConfigurationId: number;
+  agentConfigurationId: string;
   triggerId: string;
 }): Promise<Result<void, Error>> {
   const client = await getTemporalClientForAgentNamespace();

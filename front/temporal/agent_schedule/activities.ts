@@ -10,7 +10,7 @@ import { LightTriggerType } from "@app/types/assistant/triggers";
 
 export async function runScheduledAgentsActivity(
   authType: AuthenticatorType,
-  agentConfigurationId: number,
+  agentConfigurationId: string,
   trigger: LightTriggerType
 ) {
   if (!authType || !authType.workspaceId || !authType.userId) {
@@ -24,7 +24,7 @@ export async function runScheduledAgentsActivity(
 
   const agentConfiguration = await AgentConfiguration.findOne({
     where: {
-      id: agentConfigurationId,
+      sId: agentConfigurationId,
       workspaceId: auth.getNonNullableWorkspace().id,
     },
   });

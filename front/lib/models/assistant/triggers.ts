@@ -20,7 +20,7 @@ export class TriggerModel extends WorkspaceAwareModel<TriggerModel> {
   declare description: string;
 
   declare agentConfiguration: NonAttribute<AgentConfiguration>;
-  declare agentConfigurationId: ForeignKey<AgentConfiguration["id"]>;
+  declare agentConfigurationId: ForeignKey<AgentConfiguration["sId"]>;
   declare kind: TriggerKind;
 
   declare editor: ForeignKey<UserModel["id"]>;
@@ -55,7 +55,7 @@ TriggerModel.init(
       allowNull: false,
     },
     agentConfigurationId: {
-      type: DataTypes.BIGINT,
+      type: DataTypes.STRING,
       allowNull: false,
     },
     kind: {
