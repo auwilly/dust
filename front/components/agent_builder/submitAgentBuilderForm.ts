@@ -207,7 +207,11 @@ export async function submitAgentBuilderForm({
       }
     }
 
-    // Always sync triggers to handle creation, updates, and deletions
+    // We don't register triggers when saving a draft agent.
+    if (isDraft) {
+      return new Ok(agentConfiguration);
+    }
+
     const triggerSyncRes = await fetch(
       `/api/w/${owner.sId}/assistant/agent_configurations/${agentConfiguration.sId}/triggers`,
       {

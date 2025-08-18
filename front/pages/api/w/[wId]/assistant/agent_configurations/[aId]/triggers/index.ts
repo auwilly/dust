@@ -65,8 +65,6 @@ async function handler(
     agentConfigurationId
   );
 
-  console.log(triggers);
-
   switch (req.method) {
     case "GET": {
       return res.status(200).json({
@@ -85,14 +83,11 @@ async function handler(
         });
       }
 
-      console.log(req.body, req.body.triggers);
-
       if (
         !req.body ||
         !req.body.triggers ||
         !Array.isArray(req.body.triggers)
       ) {
-        console.log("Invalid request body:", req.body);
         return apiError(req, res, {
           status_code: 400,
           api_error: {
@@ -108,10 +103,6 @@ async function handler(
 
       try {
         const currentTriggersMap = new Map(triggers.map((t) => [t.sId, t]));
-
-        console.log("Current triggers:", currentTriggersMap);
-        console.log("Request triggers:", requestTriggers);
-
         const resultTriggers: LightTriggerType[] = [];
 
         for (const triggerData of requestTriggers) {
@@ -138,8 +129,6 @@ async function handler(
           const validatedTrigger = bodyValidation.right;
 
           if (triggerData.sId && currentTriggersMap.has(triggerData.sId)) {
-            console.log("Updating existing trigger:", triggerData.sId);
-
             const existingTrigger = currentTriggersMap.get(triggerData.sId)!;
             const updatedTrigger = await TriggerResource.update(
               auth,
@@ -164,7 +153,6 @@ async function handler(
             resultTriggers.push(updatedTrigger.value.toSimpleJSON());
             currentTriggersMap.delete(triggerData.sId);
           } else {
-            console.log("Creating new trigger with random sId");
             const sId = generateRandomModelSId();
             const newTrigger = await TriggerResource.makeNew(auth, {
               sId,
@@ -180,7 +168,6 @@ async function handler(
         }
 
         for (const [, trigger] of currentTriggersMap) {
-          console.log("Deleting unused trigger:", trigger.sId);
           await trigger.delete(auth);
         }
 

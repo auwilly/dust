@@ -6,7 +6,7 @@ import { frontSequelize } from "@app/lib/resources/storage";
 import type { UserModel } from "@app/lib/resources/storage/models/user";
 import { WorkspaceAwareModel } from "@app/lib/resources/storage/wrappers/workspace_models";
 import type {
-  ScheduleConfigType,
+  TriggerConfigType,
   TriggerKind,
 } from "@app/types/assistant/triggers";
 import { TRIGGER_KINDS } from "@app/types/assistant/triggers";
@@ -27,7 +27,7 @@ export class TriggerModel extends WorkspaceAwareModel<TriggerModel> {
   declare subscribers: ForeignKey<UserModel["id"]>[] | null;
   declare customPrompt: string | null;
 
-  declare configuration: ScheduleConfigType | null;
+  declare configuration: TriggerConfigType | null;
 }
 
 TriggerModel.init(
@@ -76,8 +76,8 @@ TriggerModel.init(
     sequelize: frontSequelize,
     indexes: [
       { fields: ["workspaceId"] },
-      { fields: ["workspaceId", "agentConfigurationId"], unique: true },
-      { fields: ["name"], unique: true }, // Ensure trigger names are unique within a workspace
+      { fields: ["workspaceId", "agentConfigurationId"] },
+      { fields: ["workspaceId", "name"], unique: true },
     ],
   }
 );

@@ -1,19 +1,17 @@
-import type { WorkspaceType } from "@dust-tt/client";
 import {
   Card,
   CardActionButton,
   CardGrid,
   EmptyCTA,
-  Spinner,
   TimeIcon,
   XMarkIcon,
 } from "@dust-tt/sparkle";
 import React, { useState } from "react";
-import { useFieldArray, useFormContext } from "react-hook-form";
+import { useFieldArray } from "react-hook-form";
 
 import type { AgentBuilderFormData } from "@app/components/agent_builder/AgentBuilderFormContext";
 import { AgentBuilderSectionContainer } from "@app/components/agent_builder/AgentBuilderSectionContainer";
-import { CreateScheduleModal } from "@app/components/agent_builder/triggers/CreateScheduleModal";
+import { ScheduleEditionModal } from "@app/components/agent_builder/triggers/ScheduleEditionModal";
 import { TriggerSelectorDropdown } from "@app/components/agent_builder/triggers/TriggerSelectorDropdown";
 import { useSendNotification } from "@app/hooks/useNotification";
 import type {
@@ -79,20 +77,13 @@ function TriggerCard({ trigger, onRemove, onEdit }: TriggerCardProps) {
   );
 }
 
-interface AgentBuilderTriggersBlockProps {
-  owner: WorkspaceType;
-  agentConfigurationId: string | null;
-}
-
-export function AgentBuilderTriggersBlock({
-  owner,
-  agentConfigurationId,
-}: AgentBuilderTriggersBlockProps) {
-  // Use form context for managing all triggers
-  const { fields: triggers, remove, append, update } = useFieldArray<
-    AgentBuilderFormData,
-    "triggers"
-  >({
+export function AgentBuilderTriggersBlock() {
+  const {
+    fields: triggers,
+    remove,
+    append,
+    update,
+  } = useFieldArray<AgentBuilderFormData, "triggers">({
     name: "triggers",
   });
 
@@ -103,12 +94,12 @@ export function AgentBuilderTriggersBlock({
   } | null>(null);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
 
-  const handleTriggerEdit = (trigger: LightTriggerType, index: number) => {
-    setEditingTrigger({ trigger, index });
-  };
-
   const handleCreateTrigger = () => {
     setIsCreateModalOpen(true);
+  };
+
+  const handleTriggerEdit = (trigger: LightTriggerType, index: number) => {
+    setEditingTrigger({ trigger, index });
   };
 
   const handleCloseModal = () => {
@@ -118,10 +109,8 @@ export function AgentBuilderTriggersBlock({
 
   const handleTriggerSave = (trigger: LightTriggerType) => {
     if (editingTrigger) {
-      // Editing existing trigger
       update(editingTrigger.index, trigger);
     } else {
-      // Creating new trigger
       append(trigger);
     }
     handleCloseModal();
@@ -170,7 +159,7 @@ export function AgentBuilderTriggersBlock({
       </div>
 
       {/* Create/Edit Schedule Modal */}
-      <CreateScheduleModal
+      <ScheduleEditionModal
         trigger={editingTrigger?.trigger}
         isOpen={editingTrigger !== null || isCreateModalOpen}
         onClose={handleCloseModal}

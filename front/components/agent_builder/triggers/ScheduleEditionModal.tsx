@@ -8,7 +8,6 @@ import {
   DialogTitle,
   Input,
   Label,
-  Spinner,
   TextArea,
 } from "@dust-tt/sparkle";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -18,6 +17,7 @@ import { z } from "zod";
 
 import { FormProvider } from "@app/components/sparkle/FormProvider";
 import type { LightTriggerType } from "@app/types/assistant/triggers";
+import { uniqueId } from "lodash";
 
 const scheduleFormSchema = z.object({
   name: z.string().min(1, "Name is required").max(255, "Name is too long"),
@@ -34,30 +34,24 @@ const scheduleFormSchema = z.object({
 
 type ScheduleFormData = z.infer<typeof scheduleFormSchema>;
 
-interface CreateScheduleModalProps {
+interface ScheduleEditionModalProps {
   trigger?: LightTriggerType;
   isOpen: boolean;
   onClose: () => void;
   onSave: (trigger: LightTriggerType) => void;
 }
 
-export function CreateScheduleModal({
+export function ScheduleEditionModal({
   trigger,
   isOpen,
   onClose,
   onSave,
-}: CreateScheduleModalProps) {
+}: ScheduleEditionModalProps) {
   const defaultValues: ScheduleFormData = {
-    name: trigger?.name || "",
-    description: trigger?.description || "",
-    cron:
-      (trigger?.config && "cron" in trigger.config
-        ? trigger.config.cron
-        : "") || "",
-    timezone:
-      (trigger?.config && "timezone" in trigger.config
-        ? trigger.config.timezone
-        : "UTC") || "UTC",
+    name: "Schedule",
+    description: "",
+    cron: "",
+    timezone: "UTC",
   };
 
   const form = useForm<ScheduleFormData>({
@@ -66,30 +60,25 @@ export function CreateScheduleModal({
   });
 
   const { reset } = form;
-
   useEffect(() => {
-    const newValues: ScheduleFormData = {
-      name: trigger?.name || "",
-      description: trigger?.description || "",
-      cron:
-        (trigger?.config && "cron" in trigger.config
-          ? trigger.config.cron
-          : "") || "",
-      timezone:
-        (trigger?.config && "timezone" in trigger.config
-          ? trigger.config.timezone
-          : "UTC") || "UTC",
-    };
-    reset(newValues);
-  }, [trigger?.sId, trigger?.name, trigger?.description, reset]);
+    reset({
+      name: trigger?.name ?? defaultValues.name,
+      description: trigger?.description ?? defaultValues.description,
+      cron: trigger?.config?.cron ?? defaultValues.cron,
+      timezone: trigger?.config?.timezone ?? defaultValues.timezone,
+    });
+  }, [trigger?.name, trigger?.description, trigger?.config, reset]);
 
   const handleCancel = () => {
     onClose();
   };
 
   const onSubmit = (data: ScheduleFormData) => {
+    console.log("submitting", data);
+    console.log("form getValues at submit", form.getValues());
+
     const triggerData: LightTriggerType = {
-      sId: trigger?.sId,
+      sId: trigger?.sId ?? uniqueId(),
       name: data.name.trim(),
       description: data.description.trim(),
       kind: "schedule",
@@ -99,6 +88,7 @@ export function CreateScheduleModal({
       },
     };
 
+    console.log("final triggerData", triggerData);
     onSave(triggerData);
     onClose();
   };
@@ -121,6 +111,7 @@ export function CreateScheduleModal({
                   id="trigger-name"
                   {...form.register("name")}
                   placeholder="Enter trigger name"
+                  isError={!!form.formState.errors.name}
                   message={form.formState.errors.name?.message}
                   messageStatus="error"
                 />
@@ -132,7 +123,7 @@ export function CreateScheduleModal({
                   id="trigger-description"
                   {...form.register("description")}
                   placeholder="Enter trigger description"
-                  rows={3}
+                  rows={2}
                 />
                 {form.formState.errors.description && (
                   <p className="mt-1 text-xs text-red-500">
@@ -147,6 +138,7 @@ export function CreateScheduleModal({
                   id="trigger-cron"
                   {...form.register("cron")}
                   placeholder="e.g., 0 9 * * 1-5 (weekdays at 9 AM)"
+                  isError={!!form.formState.errors.cron}
                   message={form.formState.errors.cron?.message}
                   messageStatus="error"
                 />
@@ -177,7 +169,8 @@ export function CreateScheduleModal({
             rightButtonProps={{
               label: trigger ? "Update Trigger" : "Add Trigger",
               variant: "primary",
-              type: "submit",
+              onClick: form.handleSubmit(onSubmit),
+              disabled: form.formState.isSubmitting || !form.formState.isValid,
             }}
           />
         </FormProvider>

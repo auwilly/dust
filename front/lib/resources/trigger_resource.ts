@@ -48,13 +48,7 @@ export class TriggerResource extends BaseResource<TriggerModel> {
     });
 
     const resource = new this(TriggerModel, trigger.get());
-
-    createOrUpdateAgentScheduleWorkflow({
-      authType: auth.toJSON(),
-      agentConfigurationId: trigger.agentConfigurationId,
-      trigger: resource.toSimpleJSON(),
-    });
-
+    resource.postRegister(auth);
     return resource;
   }
 
@@ -115,12 +109,7 @@ export class TriggerResource extends BaseResource<TriggerModel> {
     }
 
     await trigger.update(blob, transaction);
-
-    createOrUpdateAgentScheduleWorkflow({
-      authType: auth.toJSON(),
-      agentConfigurationId: trigger.agentConfigurationId,
-      trigger: trigger.toSimpleJSON(),
-    });
+    trigger.postRegister(auth);
     return new Ok(trigger);
   }
 
@@ -150,6 +139,18 @@ export class TriggerResource extends BaseResource<TriggerModel> {
     }
   }
 
+  postRegister(auth: Authenticator) {
+    switch (this.kind) {
+      case "schedule": {
+        createOrUpdateAgentScheduleWorkflow({
+          authType: auth.toJSON(),
+          agentConfigurationId: this.agentConfigurationId,
+          trigger: this.toSimpleJSON(),
+        });
+      }
+    }
+  }
+
   toJSON(): TriggerType {
     return {
       id: this.id,
@@ -161,7 +162,7 @@ export class TriggerResource extends BaseResource<TriggerModel> {
       subscribers: this.subscribers,
       customPrompt: this.customPrompt,
       kind: this.kind,
-      config: this.configuration!,
+      config: this.configuration,
     };
   }
 
@@ -171,7 +172,7 @@ export class TriggerResource extends BaseResource<TriggerModel> {
       name: this.name,
       description: this.description,
       kind: this.kind,
-      config: this.configuration!,
+      config: this.configuration,
     };
   }
 }

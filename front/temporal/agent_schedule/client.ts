@@ -12,7 +12,10 @@ import { Err, normalizeError, Ok } from "@app/types";
 import { QUEUE_NAME } from "./config";
 import { agentScheduleWorkflow } from "./workflows";
 import { AuthenticatorType } from "@app/lib/auth";
-import { LightTriggerType } from "@app/types/assistant/triggers";
+import {
+  isScheduleConfiguration,
+  LightTriggerType,
+} from "@app/types/assistant/triggers";
 
 export async function createOrUpdateAgentScheduleWorkflow({
   authType,
@@ -32,6 +35,16 @@ export async function createOrUpdateAgentScheduleWorkflow({
       "Trigger is not of kind 'schedule'."
     );
     return new Err(new Error("Trigger is not of kind 'schedule'"));
+  }
+
+  if (!isScheduleConfiguration(trigger.config)) {
+    logger.error(
+      { triggerConfig: trigger.config },
+      "Trigger configuration is not a valid schedule configuration."
+    );
+    return new Err(
+      new Error("Trigger configuration is not a valid schedule configuration")
+    );
   }
 
   try {

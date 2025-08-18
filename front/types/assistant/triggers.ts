@@ -10,7 +10,18 @@ export type ScheduleConfigType = {
   timezone: string;
 };
 
-export type TriggerConfigType = ScheduleConfigType;
+export function isScheduleConfiguration(
+  config: TriggerConfigType
+): config is ScheduleConfigType {
+  return (
+    config !== null &&
+    typeof config === "object" &&
+    "cron" in config &&
+    "timezone" in config
+  );
+}
+
+export type TriggerConfigType = ScheduleConfigType | null;
 
 export type TriggerType = {
   id: number;

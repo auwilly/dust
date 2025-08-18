@@ -58,12 +58,7 @@ export function AgentBuilderLeftPanel({
             agentConfigurationId={agentConfigurationId}
           />
           <AgentBuilderCapabilitiesBlock isActionsLoading={isActionsLoading} />
-          {hasFeature("hootl") && (
-            <AgentBuilderTriggersBlock
-              owner={owner}
-              agentConfigurationId={agentConfigurationId}
-            />
-          )}
+          {hasFeature("hootl") && <AgentBuilderTriggersBlock />}
           <AgentBuilderSettingsBlock
             isSettingBlocksOpen={!agentConfigurationId}
           />
