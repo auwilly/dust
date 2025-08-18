@@ -16,7 +16,8 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 
 import { FormProvider } from "@app/components/sparkle/FormProvider";
-import type { LightTriggerType } from "@app/types/assistant/triggers";
+import type { TriggerType } from "@app/types/assistant/triggers";
+import { AgentBuilderTriggerType } from "@app/components/agent_builder/AgentBuilderFormContext";
 
 const scheduleFormSchema = z.object({
   name: z.string().min(1, "Name is required").max(255, "Name is too long"),
@@ -34,10 +35,10 @@ const scheduleFormSchema = z.object({
 type ScheduleFormData = z.infer<typeof scheduleFormSchema>;
 
 interface ScheduleEditionModalProps {
-  trigger?: LightTriggerType;
+  trigger?: AgentBuilderTriggerType;
   isOpen: boolean;
   onClose: () => void;
-  onSave: (trigger: LightTriggerType) => void;
+  onSave: (trigger: AgentBuilderTriggerType) => void;
 }
 
 export function ScheduleEditionModal({
@@ -83,7 +84,7 @@ export function ScheduleEditionModal({
     console.log("submitting", data);
     console.log("form getValues at submit", form.getValues());
 
-    const triggerData: LightTriggerType = {
+    const triggerData: AgentBuilderTriggerType = {
       sId: trigger?.sId ?? uniqueId(),
       name: data.name.trim(),
       description: data.description.trim(),

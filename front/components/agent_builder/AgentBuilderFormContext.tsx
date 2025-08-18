@@ -171,7 +171,7 @@ const scheduleConfigSchema = z.object({
   timezone: z.string(),
 });
 
-const lightTriggerSchema = z.object({
+const triggerSchema = z.object({
   sId: z.string().optional(),
   name: z.string(),
   description: z.string(),
@@ -184,7 +184,7 @@ export const agentBuilderFormSchema = z.object({
   instructions: z.string().min(1, "Instructions are required"),
   generationSettings: generationSettingsSchema,
   actions: z.array(actionSchema),
-  triggers: z.array(lightTriggerSchema),
+  triggers: z.array(triggerSchema),
   maxStepsPerRun: z
     .number()
     .min(1, "Max steps per run must be at least 1")
@@ -193,6 +193,7 @@ export const agentBuilderFormSchema = z.object({
 
 export type AgentBuilderFormData = z.infer<typeof agentBuilderFormSchema>;
 
+export type AgentBuilderTriggerType = z.infer<typeof triggerSchema>;
 export type AgentBuilderAction = z.infer<typeof actionSchema>;
 export type AgentBuilderDataVizAction = z.infer<
   typeof dataVisualizationActionSchema

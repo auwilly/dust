@@ -18,10 +18,7 @@ import {
   deleteAgentScheduleWorkflow,
 } from "@app/temporal/agent_schedule/client";
 import { normalizeError } from "@app/types";
-import type {
-  LightTriggerType,
-  TriggerType,
-} from "@app/types/assistant/triggers";
+import type { TriggerType } from "@app/types/assistant/triggers";
 
 // Attributes are marked as read-only to reflect the stateless nature of our Resource.
 // This design will be moved up to BaseResource once we transition away from Sequelize.
@@ -145,7 +142,7 @@ export class TriggerResource extends BaseResource<TriggerModel> {
         await createOrUpdateAgentScheduleWorkflow({
           authType: auth.toJSON(),
           agentConfigurationId: this.agentConfigurationId,
-          trigger: this.toSimpleJSON(),
+          trigger: this.toJSON(),
         });
       }
     }
@@ -161,16 +158,6 @@ export class TriggerResource extends BaseResource<TriggerModel> {
       editor: this.editor,
       subscribers: this.subscribers,
       customPrompt: this.customPrompt,
-      kind: this.kind,
-      config: this.configuration,
-    };
-  }
-
-  toSimpleJSON(): LightTriggerType {
-    return {
-      sId: this.sId,
-      name: this.name,
-      description: this.description,
       kind: this.kind,
       config: this.configuration,
     };

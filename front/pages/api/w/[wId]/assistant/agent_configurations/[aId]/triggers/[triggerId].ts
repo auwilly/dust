@@ -8,15 +8,15 @@ import type { Authenticator } from "@app/lib/auth";
 import { TriggerResource } from "@app/lib/resources/trigger_resource";
 import { apiError, withLogging } from "@app/logger/withlogging";
 import type { WithAPIErrorResponse } from "@app/types";
-import type { LightTriggerType } from "@app/types/assistant/triggers";
+import type { TriggerType } from "@app/types/assistant/triggers";
 import { TriggerSchema } from "@app/types/assistant/triggers";
 
 export interface GetTriggerResponseBody {
-  trigger: LightTriggerType;
+  trigger: TriggerType;
 }
 
 export interface PatchTriggerResponseBody {
-  trigger: LightTriggerType;
+  trigger: TriggerType;
 }
 
 async function handler(
@@ -58,7 +58,7 @@ async function handler(
   switch (req.method) {
     case "GET": {
       return res.status(200).json({
-        trigger: trigger.toSimpleJSON(),
+        trigger: trigger.toJSON(),
       });
     }
 
@@ -106,7 +106,7 @@ async function handler(
         }
 
         return res.status(200).json({
-          trigger: updateResult.value.toSimpleJSON(),
+          trigger: updateResult.value.toJSON(),
         });
       } catch (error) {
         return apiError(req, res, {

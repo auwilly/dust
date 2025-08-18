@@ -9,11 +9,11 @@ import { generateRandomModelSId } from "@app/lib/resources/string_ids";
 import { TriggerResource } from "@app/lib/resources/trigger_resource";
 import { apiError, withLogging } from "@app/logger/withlogging";
 import type { WithAPIErrorResponse } from "@app/types";
-import type { LightTriggerType } from "@app/types/assistant/triggers";
+import type { TriggerType } from "@app/types/assistant/triggers";
 import { TriggerSchema } from "@app/types/assistant/triggers";
 
 export interface GetTriggersResponseBody {
-  triggers: LightTriggerType[];
+  triggers: TriggerType[];
 }
 
 export interface PatchTriggersRequestBody {
@@ -26,15 +26,9 @@ export interface PatchTriggersRequestBody {
   }>;
 }
 
-export interface PatchTriggersResponseBody {
-  triggers: LightTriggerType[];
-}
-
 async function handler(
   req: NextApiRequest,
-  res: NextApiResponse<
-    WithAPIErrorResponse<GetTriggersResponseBody | PatchTriggersResponseBody>
-  >,
+  res: NextApiResponse<WithAPIErrorResponse<GetTriggersResponseBody>>,
   auth: Authenticator
 ): Promise<void> {
   const agentConfigurationId = req.query.aId as string;
@@ -62,7 +56,7 @@ async function handler(
   switch (req.method) {
     case "GET": {
       return res.status(200).json({
-        triggers: triggers.map((trigger) => trigger.toSimpleJSON()),
+        triggers: triggers.map((trigger) => trigger.toJSON()),
       });
     }
 
@@ -97,7 +91,7 @@ async function handler(
 
       try {
         const currentTriggersMap = new Map(triggers.map((t) => [t.sId, t]));
-        const resultTriggers: LightTriggerType[] = [];
+        const resultTriggers: TriggerType[] = [];
 
         for (const triggerData of requestTriggers) {
           const bodyValidation = TriggerSchema.decode({
@@ -144,7 +138,7 @@ async function handler(
               });
             }
 
-            resultTriggers.push(updatedTrigger.value.toSimpleJSON());
+            resultTriggers.push(updatedTrigger.value.toJSON());
             currentTriggersMap.delete(triggerData.sId);
           } else {
             const sId = generateRandomModelSId();
@@ -157,7 +151,7 @@ async function handler(
               kind: validatedTrigger.kind,
               configuration: validatedTrigger.config || null,
             });
-            resultTriggers.push(newTrigger.toSimpleJSON());
+            resultTriggers.push(newTrigger.toJSON());
           }
         }
 
@@ -165,9 +159,8 @@ async function handler(
           await trigger.delete(auth);
         }
 
-        return res.status(200).json({
-          triggers: resultTriggers,
-        });
+        res.status(204).end();
+        return;
       } catch (error) {
         return apiError(req, res, {
           status_code: 500,

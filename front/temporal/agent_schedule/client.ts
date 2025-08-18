@@ -14,7 +14,7 @@ import { agentScheduleWorkflow } from "./workflows";
 import { AuthenticatorType } from "@app/lib/auth";
 import {
   isScheduleConfiguration,
-  LightTriggerType,
+  TriggerType,
 } from "@app/types/assistant/triggers";
 
 export async function createOrUpdateAgentScheduleWorkflow({
@@ -24,7 +24,7 @@ export async function createOrUpdateAgentScheduleWorkflow({
 }: {
   authType: AuthenticatorType;
   agentConfigurationId: string;
-  trigger: LightTriggerType;
+  trigger: TriggerType;
 }): Promise<Result<string, Error>> {
   const client = await getTemporalClientForAgentNamespace();
   const scheduleId = `agent-schedule-${authType.workspaceId}-${agentConfigurationId}-${trigger.sId}`;
@@ -48,11 +48,45 @@ export async function createOrUpdateAgentScheduleWorkflow({
   }
 
   try {
+    const handle = client.schedule.getHandle(scheduleId);
+    await handle.update((previous) => {
+      return {
+        action: {
+          type: "startWorkflow",
+          workflowType: agentScheduleWorkflow,
+          args: [authType, trigger],
+          taskQueue: QUEUE_NAME,
+        },
+        scheduleId,
+        policies: {
+          overlap: ScheduleOverlapPolicy.SKIP,
+        },
+        /** TS don't infer the config type here, and thinks config is not certain to be a ScheduleConfigType */
+        spec: {
+          cronExpressions: [trigger.config?.cron ?? ""],
+          timezone: trigger.config?.timezone ?? previous.spec.timezone,
+        },
+        state: previous.state,
+      };
+    });
+
+    return new Ok(scheduleId);
+  } catch {
+    logger.info(
+      {
+        wId: authType.workspaceId,
+        trigger,
+      },
+      "Creating a new schedule."
+    );
+  }
+
+  try {
     await client.schedule.create({
       action: {
         type: "startWorkflow",
         workflowType: agentScheduleWorkflow,
-        args: [authType, agentConfigurationId, trigger],
+        args: [authType, trigger],
         taskQueue: QUEUE_NAME,
       },
       scheduleId,
@@ -61,6 +95,7 @@ export async function createOrUpdateAgentScheduleWorkflow({
       },
       spec: {
         cronExpressions: [trigger.config.cron],
+        timezone: trigger.config.timezone,
       },
     });
 
@@ -72,7 +107,14 @@ export async function createOrUpdateAgentScheduleWorkflow({
     );
   } catch (err) {
     if (!(err instanceof ScheduleAlreadyRunning)) {
-      logger.error({}, "Failed to schedule workflow.");
+      logger.error(
+        {
+          err,
+          wId: authType.workspaceId,
+          trigger,
+        },
+        "Failed to schedule workflow."
+      );
 
       return new Err(normalizeError(err));
     }

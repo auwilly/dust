@@ -40,14 +40,6 @@ export type TriggerType = {
   customPrompt: string | null;
 };
 
-export type LightTriggerType = {
-  sId?: string;
-  name: string;
-  description: string;
-  kind: TriggerKind;
-  config: TriggerConfigType;
-};
-
 const TriggerKindCodec = t.literal("schedule");
 
 const ScheduleConfigSchema = t.type({

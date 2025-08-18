@@ -11,14 +11,14 @@ import {
 import React, { useState } from "react";
 import { useFieldArray } from "react-hook-form";
 
-import type { AgentBuilderFormData } from "@app/components/agent_builder/AgentBuilderFormContext";
+import type {
+  AgentBuilderFormData,
+  AgentBuilderTriggerType,
+} from "@app/components/agent_builder/AgentBuilderFormContext";
 import { AgentBuilderSectionContainer } from "@app/components/agent_builder/AgentBuilderSectionContainer";
 import { ScheduleEditionModal } from "@app/components/agent_builder/triggers/ScheduleEditionModal";
 import { useSendNotification } from "@app/hooks/useNotification";
-import type {
-  LightTriggerType,
-  TriggerKind,
-} from "@app/types/assistant/triggers";
+import type { TriggerType, TriggerKind } from "@app/types/assistant/triggers";
 
 const BACKGROUND_IMAGE_STYLE_PROPS = {
   backgroundImage: `url("/static/IconBar.svg")`,
@@ -40,7 +40,7 @@ function getIcon(kind: TriggerKind) {
 }
 
 interface TriggerCardProps {
-  trigger: LightTriggerType;
+  trigger: AgentBuilderTriggerType;
   onRemove: () => void;
   onEdit?: () => void;
 }
@@ -90,7 +90,7 @@ export function AgentBuilderTriggersBlock() {
 
   const sendNotification = useSendNotification();
   const [editingTrigger, setEditingTrigger] = useState<{
-    trigger: LightTriggerType;
+    trigger: AgentBuilderTriggerType;
     index: number;
   } | null>(null);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
@@ -99,7 +99,10 @@ export function AgentBuilderTriggersBlock() {
     setIsCreateModalOpen(true);
   };
 
-  const handleTriggerEdit = (trigger: LightTriggerType, index: number) => {
+  const handleTriggerEdit = (
+    trigger: AgentBuilderTriggerType,
+    index: number
+  ) => {
     setEditingTrigger({ trigger, index });
   };
 
@@ -108,7 +111,7 @@ export function AgentBuilderTriggersBlock() {
     setIsCreateModalOpen(false);
   };
 
-  const handleTriggerSave = (trigger: LightTriggerType) => {
+  const handleTriggerSave = (trigger: AgentBuilderTriggerType) => {
     if (editingTrigger) {
       update(editingTrigger.index, trigger);
     } else {
@@ -117,7 +120,10 @@ export function AgentBuilderTriggersBlock() {
     handleCloseModal();
   };
 
-  const handleTriggerRemove = (trigger: LightTriggerType, index: number) => {
+  const handleTriggerRemove = (
+    trigger: AgentBuilderTriggerType,
+    index: number
+  ) => {
     remove(index);
     sendNotification({
       type: "success",

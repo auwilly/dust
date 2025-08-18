@@ -4,14 +4,11 @@ import {
 } from "@app/lib/api/assistant/conversation";
 import { Authenticator, AuthenticatorType } from "@app/lib/auth";
 import { AgentConfiguration } from "@app/lib/models/assistant/agent";
-import { WorkspaceModel } from "@app/lib/resources/storage/models/workspace";
-import { TriggerResource } from "@app/lib/resources/trigger_resource";
-import { LightTriggerType } from "@app/types/assistant/triggers";
+import { TriggerType } from "@app/types/assistant/triggers";
 
 export async function runScheduledAgentsActivity(
   authType: AuthenticatorType,
-  agentConfigurationId: string,
-  trigger: LightTriggerType
+  trigger: TriggerType
 ) {
   if (!authType || !authType.workspaceId || !authType.userId) {
     throw new Error("Invalid authentication. Missing workspaceId or userId.");
@@ -24,14 +21,14 @@ export async function runScheduledAgentsActivity(
 
   const agentConfiguration = await AgentConfiguration.findOne({
     where: {
-      sId: agentConfigurationId,
+      sId: trigger.agentConfigurationId,
       workspaceId: auth.getNonNullableWorkspace().id,
     },
   });
 
   if (!agentConfiguration) {
     throw new Error(
-      `Agent configuration with ID ${agentConfigurationId} not found in workspace ${auth.getNonNullableWorkspace().id}.`
+      `Agent configuration with ID ${trigger.agentConfigurationId} not found in workspace ${auth.getNonNullableWorkspace().id}.`
     );
   }
 
@@ -54,14 +51,14 @@ export async function runScheduledAgentsActivity(
     content: `:mention[${agentConfiguration.name}]{${agentConfiguration.sId}}`,
     mentions: [{ configurationId: agentConfiguration.sId }],
     context: baseContext,
-    skipToolsValidation: true,
+    skipToolsValidation: false,
   });
 
   if (messageRes.isErr()) {
     console.error(
       {
-        agentConfigurationId,
-        conversationSid: newConversation.sId,
+        agentConfigurationId: trigger.agentConfigurationId,
+        conversationId: newConversation.sId,
         error: messageRes.error,
         trigger,
         timestamp: new Date().toISOString(),
