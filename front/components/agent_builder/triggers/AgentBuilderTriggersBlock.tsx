@@ -1,7 +1,9 @@
 import {
+  Button,
   Card,
   CardActionButton,
   CardGrid,
+  ClockIcon,
   EmptyCTA,
   TimeIcon,
   XMarkIcon,
@@ -12,7 +14,6 @@ import { useFieldArray } from "react-hook-form";
 import type { AgentBuilderFormData } from "@app/components/agent_builder/AgentBuilderFormContext";
 import { AgentBuilderSectionContainer } from "@app/components/agent_builder/AgentBuilderSectionContainer";
 import { ScheduleEditionModal } from "@app/components/agent_builder/triggers/ScheduleEditionModal";
-import { TriggerSelectorDropdown } from "@app/components/agent_builder/triggers/TriggerSelectorDropdown";
 import { useSendNotification } from "@app/hooks/useNotification";
 import type {
   TriggerKind,
@@ -131,7 +132,12 @@ export function AgentBuilderTriggersBlock() {
       description="Triggers agent execution based on events."
       headerActions={
         triggers.length > 0 ? (
-          <TriggerSelectorDropdown onCreateTrigger={handleCreateTrigger} />
+          <Button
+            label="Add Schedule"
+            variant="primary"
+            icon={ClockIcon}
+            onClick={handleCreateTrigger}
+          />
         ) : undefined
       }
     >
@@ -139,7 +145,12 @@ export function AgentBuilderTriggersBlock() {
         {triggers.length === 0 ? (
           <EmptyCTA
             action={
-              <TriggerSelectorDropdown onCreateTrigger={handleCreateTrigger} />
+              <Button
+                label="Add Schedule"
+                variant="primary"
+                icon={ClockIcon}
+                onClick={handleCreateTrigger}
+              />
             }
             className="pb-5"
             style={BACKGROUND_IMAGE_STYLE_PROPS}
