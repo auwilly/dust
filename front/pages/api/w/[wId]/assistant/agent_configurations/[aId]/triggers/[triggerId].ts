@@ -5,7 +5,6 @@ import type { NextApiRequest, NextApiResponse } from "next";
 import { getAgentConfiguration } from "@app/lib/api/assistant/configuration/agent";
 import { withSessionAuthenticationForWorkspace } from "@app/lib/api/auth_wrappers";
 import type { Authenticator } from "@app/lib/auth";
-import { getResourceIdFromSId } from "@app/lib/resources/string_ids";
 import { TriggerResource } from "@app/lib/resources/trigger_resource";
 import { apiError, withLogging } from "@app/logger/withlogging";
 import type { WithAPIErrorResponse } from "@app/types";
@@ -89,16 +88,12 @@ async function handler(
       const triggerData = bodyValidation.right;
 
       try {
-        const updateResult = await TriggerResource.update(
-          auth,
-          triggerId,
-          {
-            name: triggerData.name,
-            description: triggerData.description,
-            kind: triggerData.kind,
-            configuration: triggerData.config || null,
-          }
-        );
+        const updateResult = await TriggerResource.update(auth, triggerId, {
+          name: triggerData.name,
+          description: triggerData.description,
+          kind: triggerData.kind,
+          configuration: triggerData.config || null,
+        });
 
         if (updateResult.isErr()) {
           return apiError(req, res, {
@@ -165,7 +160,8 @@ async function handler(
         status_code: 405,
         api_error: {
           type: "method_not_supported_error",
-          message: "The method passed is not supported, GET, PATCH, and DELETE are expected.",
+          message:
+            "The method passed is not supported, GET, PATCH, and DELETE are expected.",
         },
       });
   }

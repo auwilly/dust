@@ -16,8 +16,8 @@ import { AgentBuilderSectionContainer } from "@app/components/agent_builder/Agen
 import { ScheduleEditionModal } from "@app/components/agent_builder/triggers/ScheduleEditionModal";
 import { useSendNotification } from "@app/hooks/useNotification";
 import type {
-  TriggerKind,
   LightTriggerType,
+  TriggerKind,
 } from "@app/types/assistant/triggers";
 
 const BACKGROUND_IMAGE_STYLE_PROPS = {

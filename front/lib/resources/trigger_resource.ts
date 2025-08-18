@@ -13,15 +13,15 @@ import { TriggerModel } from "@app/lib/models/assistant/triggers";
 import { BaseResource } from "@app/lib/resources/base_resource";
 import type { ReadonlyAttributesType } from "@app/lib/resources/storage/types";
 import type { ResourceFindOptions } from "@app/lib/resources/types";
+import {
+  createOrUpdateAgentScheduleWorkflow,
+  deleteAgentScheduleWorkflow,
+} from "@app/temporal/agent_schedule/client";
 import { normalizeError } from "@app/types";
 import type {
   LightTriggerType,
   TriggerType,
 } from "@app/types/assistant/triggers";
-import {
-  createOrUpdateAgentScheduleWorkflow,
-  deleteAgentScheduleWorkflow,
-} from "@app/temporal/agent_schedule/client";
 
 // Attributes are marked as read-only to reflect the stateless nature of our Resource.
 // This design will be moved up to BaseResource once we transition away from Sequelize.
@@ -48,7 +48,7 @@ export class TriggerResource extends BaseResource<TriggerModel> {
     });
 
     const resource = new this(TriggerModel, trigger.get());
-    resource.postRegister(auth);
+    await resource.postRegister(auth);
     return resource;
   }
 
@@ -109,7 +109,7 @@ export class TriggerResource extends BaseResource<TriggerModel> {
     }
 
     await trigger.update(blob, transaction);
-    trigger.postRegister(auth);
+    await trigger.postRegister(auth);
     return new Ok(trigger);
   }
 
@@ -119,7 +119,7 @@ export class TriggerResource extends BaseResource<TriggerModel> {
   ): Promise<Result<undefined, Error>> {
     const owner = auth.getNonNullableWorkspace();
 
-    deleteAgentScheduleWorkflow({
+    await deleteAgentScheduleWorkflow({
       authType: auth.toJSON(),
       agentConfigurationId: this.agentConfigurationId,
       triggerId: this.sId,
@@ -139,10 +139,10 @@ export class TriggerResource extends BaseResource<TriggerModel> {
     }
   }
 
-  postRegister(auth: Authenticator) {
+  async postRegister(auth: Authenticator) {
     switch (this.kind) {
       case "schedule": {
-        createOrUpdateAgentScheduleWorkflow({
+        await createOrUpdateAgentScheduleWorkflow({
           authType: auth.toJSON(),
           agentConfigurationId: this.agentConfigurationId,
           trigger: this.toSimpleJSON(),

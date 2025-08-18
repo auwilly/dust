@@ -7,7 +7,6 @@ import {
   MODEL_PROVIDER_IDS,
   REASONING_EFFORT_IDS,
 } from "@app/types/assistant/assistant";
-import type { LightTriggerType } from "@app/types/assistant/triggers";
 
 const modelIdSchema = z.enum(MODEL_IDS);
 const providerIdSchema = z.enum(MODEL_PROVIDER_IDS);

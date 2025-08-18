@@ -1,5 +1,4 @@
 import {
-  Button,
   Dialog,
   DialogContainer,
   DialogContent,
@@ -11,13 +10,13 @@ import {
   TextArea,
 } from "@dust-tt/sparkle";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { uniqueId } from "lodash";
 import React, { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 
 import { FormProvider } from "@app/components/sparkle/FormProvider";
 import type { LightTriggerType } from "@app/types/assistant/triggers";
-import { uniqueId } from "lodash";
 
 const scheduleFormSchema = z.object({
   name: z.string().min(1, "Name is required").max(255, "Name is too long"),
@@ -67,7 +66,14 @@ export function ScheduleEditionModal({
       cron: trigger?.config?.cron ?? defaultValues.cron,
       timezone: trigger?.config?.timezone ?? defaultValues.timezone,
     });
-  }, [trigger?.name, trigger?.description, trigger?.config, reset]);
+  }, [
+    reset,
+    defaultValues.name,
+    defaultValues.description,
+    defaultValues.cron,
+    defaultValues.timezone,
+    trigger,
+  ]);
 
   const handleCancel = () => {
     onClose();
