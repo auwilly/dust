@@ -14,8 +14,6 @@ CREATE TABLE IF NOT EXISTS "triggers" (
 );
 
 CREATE INDEX "triggers_workspace_id" ON "triggers" ("workspaceId");
-
-CREATE UNIQUE INDEX "triggers_workspace_id_agent_configuration_id" ON "triggers" ("workspaceId", "agentConfigurationId");
-
-CREATE UNIQUE INDEX "triggers_name" ON "triggers" ("name");
+CREATE INDEX "triggers_workspace_id_agent_configuration_id" ON "triggers" ("workspaceId", "agentConfigurationId");
+CREATE INDEX "triggers_workspace_id_name" ON "triggers" ("workspaceId", "name");
 

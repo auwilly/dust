@@ -15,9 +15,8 @@ import React, { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 
+import type { AgentBuilderTriggerType } from "@app/components/agent_builder/AgentBuilderFormContext";
 import { FormProvider } from "@app/components/sparkle/FormProvider";
-import type { TriggerType } from "@app/types/assistant/triggers";
-import { AgentBuilderTriggerType } from "@app/components/agent_builder/AgentBuilderFormContext";
 
 const scheduleFormSchema = z.object({
   name: z.string().min(1, "Name is required").max(255, "Name is too long"),

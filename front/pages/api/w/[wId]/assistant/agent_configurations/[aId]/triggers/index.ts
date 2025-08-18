@@ -162,6 +162,7 @@ async function handler(
         res.status(204).end();
         return;
       } catch (error) {
+        console.log("Error syncing triggers:", error);
         return apiError(req, res, {
           status_code: 500,
           api_error: {

@@ -77,7 +77,7 @@ TriggerModel.init(
     indexes: [
       { fields: ["workspaceId"] },
       { fields: ["workspaceId", "agentConfigurationId"] },
-      { fields: ["workspaceId", "name"], unique: true },
+      { fields: ["workspaceId", "name"] },
     ],
   }
 );

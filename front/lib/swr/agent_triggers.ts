@@ -24,7 +24,7 @@ export function useAgentTriggers({
 
   return {
     triggers: data?.triggers ?? emptyArray(),
-    isTriggersLoading: agentConfigurationId && !error && !data && !disabled,
+    isTriggersLoading: !!agentConfigurationId && !error && !data && !disabled,
     isTriggersError: error,
     isTriggersValidating: isValidating,
     mutateTriggers: mutate,

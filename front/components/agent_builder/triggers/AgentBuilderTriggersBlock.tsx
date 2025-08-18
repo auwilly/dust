@@ -18,7 +18,7 @@ import type {
 import { AgentBuilderSectionContainer } from "@app/components/agent_builder/AgentBuilderSectionContainer";
 import { ScheduleEditionModal } from "@app/components/agent_builder/triggers/ScheduleEditionModal";
 import { useSendNotification } from "@app/hooks/useNotification";
-import type { TriggerType, TriggerKind } from "@app/types/assistant/triggers";
+import type { TriggerKind } from "@app/types/assistant/triggers";
 
 const BACKGROUND_IMAGE_STYLE_PROPS = {
   backgroundImage: `url("/static/IconBar.svg")`,
