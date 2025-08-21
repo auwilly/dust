@@ -520,9 +520,10 @@ export async function* runToolWithStreaming(
     `workspace_name:${owner.name}`,
   ];
 
-  const { executionState, status } = mcpAction;
+  const { executionState } = mcpAction;
 
-  if (status === "denied") {
+  // TODO(durable-agents): remove this part once `status` has been filled (unreachable code path).
+  if (executionState === "denied") {
     statsDClient.increment("mcp_actions_denied.count", 1, tags);
     localLogger.info("Action execution rejected by user");
 
