@@ -1,6 +1,7 @@
 import assert from "assert";
 
 import { isToolExecutionStatusFinal } from "@app/lib/actions/mcp";
+import { approvalStatusToToolExecutionStatus } from "@app/lib/actions/utils";
 import type { AuthenticatorType } from "@app/lib/auth";
 import type { Authenticator } from "@app/lib/auth";
 import { AgentMCPAction as AgentMCPActionModel } from "@app/lib/models/assistant/actions/mcp";
@@ -170,12 +171,14 @@ async function getExistingActionsAndBlobs(
 
       // TODO(durable-agents): uncomment the following once `status` has been filled.
       // // If the tool is not already in a final state we must add it to the list of actions to run.
-      // if (!isToolExecutionStatusFinal(mcpAction.executionState)) {
-      actionBlobs.push({
-        actionId: mcpAction.id,
-        needsApproval: mcpAction.executionState === "pending",
-      });
-      // }
+      if (!isToolExecutionStatusFinal(mcpAction.status)) {
+        actionBlobs.push({
+          actionId: mcpAction.id,
+          needsApproval:
+            approvalStatusToToolExecutionStatus(mcpAction.executionState) ===
+            "blocked_pending_validation",
+        });
+      }
     }
   }
 

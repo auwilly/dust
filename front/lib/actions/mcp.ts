@@ -45,6 +45,7 @@ import {
   AgentMCPAction,
   AgentMCPActionOutputItem,
 } from "@app/lib/models/assistant/actions/mcp";
+import { AgentMCPActionResource } from "@app/lib/resources/agent_mcp_action_resource";
 import { getResourceIdFromSId, makeSId } from "@app/lib/resources/string_ids";
 import logger from "@app/logger/logger";
 import { statsDClient } from "@app/logger/statsDClient";
@@ -519,10 +520,9 @@ export async function* runToolWithStreaming(
     `workspace_name:${owner.name}`,
   ];
 
-  const { executionState } = mcpAction;
+  const { executionState, status } = mcpAction;
 
-  // TODO(durable-agents): remove this part once `status` has been filled (unreachable code path).
-  if (executionState === "denied") {
+  if (status === "denied") {
     statsDClient.increment("mcp_actions_denied.count", 1, tags);
     localLogger.info("Action execution rejected by user");
 
@@ -680,39 +680,32 @@ export async function createMCPAction(
     stepContext: StepContext;
     approvalStatus: "allowed_implicitly" | "pending";
   }
-): Promise<{ action: AgentMCPAction; mcpAction: MCPActionType }> {
+): Promise<{ action: AgentMCPActionResource; mcpAction: MCPActionType }> {
   const toolConfiguration = omit(
     actionConfiguration,
     MCP_TOOL_CONFIGURATION_FIELDS_TO_OMIT
   ) as LightMCPToolConfigurationType;
 
-  const action = await AgentMCPAction.create({
-    agentMessageId: actionBaseParams.agentMessageId,
+  const actionResource = await AgentMCPActionResource.makeNew(auth, {
+    actionBaseParams,
     augmentedInputs,
-    citationsAllocated: stepContext.citationsCount,
-    executionState: "pending",
-    isError: false,
-    mcpServerConfigurationId: actionBaseParams.mcpServerConfigurationId,
-    runningState: "not_started",
-    status: approvalStatusToToolExecutionStatus(approvalStatus),
     stepContentId,
     stepContext,
+    approvalStatus,
     toolConfiguration,
-    version: 0,
-    workspaceId: auth.getNonNullableWorkspace().id,
   });
 
   const mcpAction = new MCPActionType({
     ...actionBaseParams,
     executionState: "pending",
-    id: action.id,
+    id: actionResource.id,
     isError: false,
     output: null,
     type: "tool_action",
     runningState: "not_started",
   });
 
-  return { action, mcpAction };
+  return { action: actionResource, mcpAction };
 }
 
 type BaseErrorParams = {
@@ -756,6 +749,8 @@ export async function handleMCPActionError(
 
   const { action, actionBaseParams } = params;
 
+  const actionResource = new AgentMCPActionResource(AgentMCPAction, action);
+
   await AgentMCPActionOutputItem.create({
     workspaceId: action.workspaceId,
     agentMCPActionId: action.id,
@@ -764,11 +759,7 @@ export async function handleMCPActionError(
 
   // Yields tool_error to stop conversation.
   if (params.yieldAsError) {
-    // Update action to mark it as having an error.
-    await action.update({
-      isError: true,
-      status: "errored",
-    });
+    await actionResource.updateStatus("errored");
 
     return {
       type: "tool_error",
@@ -789,9 +780,7 @@ export async function handleMCPActionError(
       approvalStatusToToolExecutionStatus(executionState)
     )
   ) {
-    await action.update({
-      status: "errored",
-    });
+    await actionResource.updateStatus("errored");
   }
 
   // Yields tool_success to continue conversation.
@@ -819,7 +808,6 @@ export function isMCPApproveExecutionEvent(
   return event.type === "tool_approve_execution";
 }
 
-// TODO(DURABLE_AGENTS 2025-08-12): Create a proper resource for the agent mcp action.
 export async function getMCPAction(
   actionId: string
 ): Promise<AgentMCPAction | null> {
@@ -828,10 +816,9 @@ export async function getMCPAction(
     throw new Error(`Invalid action ID: ${actionId}`);
   }
 
-  return AgentMCPAction.findByPk(id);
+  return AgentMCPActionResource.findByPk(id);
 }
 
-// TODO(DURABLE_AGENTS 2025-08-12): Create a proper resource for the agent mcp action.
 export async function updateMCPApprovalState(
   action: AgentMCPAction,
   executionState: "denied" | "allowed_explicitly"
@@ -840,10 +827,11 @@ export async function updateMCPApprovalState(
     return false;
   }
 
-  await action.update({
-    executionState,
-    status: approvalStatusToToolExecutionStatus(executionState),
-  });
+  const actionResource = new AgentMCPActionResource(AgentMCPAction, action);
+
+  await actionResource.updateStatus(
+    approvalStatusToToolExecutionStatus(executionState)
+  );
 
   return true;
 }

@@ -1,8 +1,16 @@
 import assert from "assert";
-import type { Transaction } from "sequelize";
+import type { Transaction, WhereOptions } from "sequelize";
 
+import type {
+  ActionBaseParams,
+  LightMCPToolConfigurationType,
+  ToolExecutionStatus,
+} from "@app/lib/actions/mcp";
+import type { StepContext } from "@app/lib/actions/types";
+import { approvalStatusToToolExecutionStatus } from "@app/lib/actions/utils";
 import { getAgentConfigurations } from "@app/lib/api/assistant/configuration/agent";
 import type { Authenticator } from "@app/lib/auth";
+import type { AgentMCPActionOutputItem } from "@app/lib/models/assistant/actions/mcp";
 import { AgentMCPAction } from "@app/lib/models/assistant/actions/mcp";
 import { AgentMessage, Message } from "@app/lib/models/assistant/conversation";
 import { BaseResource } from "@app/lib/resources/base_resource";
@@ -19,7 +27,11 @@ import { Err, normalizeError, Ok } from "@app/types";
 // This design will be moved up to BaseResource once we transition away from Sequelize.
 // eslint-disable-next-line @typescript-eslint/no-empty-interface, @typescript-eslint/no-unsafe-declaration-merging
 export interface AgentMCPActionResource
-  extends ReadonlyAttributesType<AgentMCPAction> {}
+  extends ReadonlyAttributesType<AgentMCPAction> {
+  agentMessage?: AgentMessage;
+  outputItems?: AgentMCPActionOutputItem[];
+}
+
 // eslint-disable-next-line @typescript-eslint/no-unsafe-declaration-merging
 export class AgentMCPActionResource extends BaseResource<AgentMCPAction> {
   static model: ModelStaticWorkspaceAware<AgentMCPAction> = AgentMCPAction;
@@ -39,6 +51,69 @@ export class AgentMCPActionResource extends BaseResource<AgentMCPAction> {
     return actions.map((a) => new this(this.model, a.get()));
   }
 
+  static async makeNew(
+    auth: Authenticator,
+    {
+      actionBaseParams,
+      augmentedInputs,
+      stepContentId,
+      stepContext,
+      approvalStatus,
+      toolConfiguration,
+      version,
+    }: {
+      actionBaseParams: ActionBaseParams;
+      augmentedInputs: Record<string, unknown>;
+      stepContentId: ModelId;
+      stepContext: StepContext;
+      approvalStatus: "allowed_implicitly" | "pending";
+      toolConfiguration: LightMCPToolConfigurationType;
+      version?: number;
+    },
+    { transaction }: { transaction?: Transaction } = {}
+  ): Promise<AgentMCPActionResource> {
+    const action = await AgentMCPAction.create(
+      {
+        agentMessageId: actionBaseParams.agentMessageId,
+        augmentedInputs,
+        citationsAllocated: stepContext.citationsCount,
+        executionState: "pending",
+        isError: false,
+        mcpServerConfigurationId: actionBaseParams.mcpServerConfigurationId,
+        runningState: "not_started",
+        status: approvalStatusToToolExecutionStatus(approvalStatus),
+        stepContentId,
+        stepContext,
+        toolConfiguration,
+        version: version ?? 0,
+        workspaceId: auth.getNonNullableWorkspace().id,
+      },
+      { transaction }
+    );
+
+    return new this(AgentMCPAction, action.get());
+  }
+
+  static async findAll(
+    auth: Authenticator,
+    { where, limit, order }: ResourceFindOptions<AgentMCPAction> = {}
+  ) {
+    return this.baseFetch(auth, {
+      where,
+      limit,
+      order,
+    });
+  }
+
+  static async findByPk(id: ModelId): Promise<AgentMCPAction | null> {
+    const action = await AgentMCPAction.findByPk(id);
+    if (!action) {
+      return null;
+    }
+
+    return action;
+  }
+
   static async listPendingValidationsForConversation(
     auth: Authenticator,
     conversationId: string
@@ -53,30 +128,32 @@ export class AgentMCPActionResource extends BaseResource<AgentMCPAction> {
       return [];
     }
 
-    const pendingActions = await AgentMCPAction.findAll({
-      include: [
-        {
-          model: AgentMessage,
-          as: "agentMessage",
-          required: true,
-          include: [
-            {
-              model: Message,
-              as: "message",
-              required: true,
-              where: {
-                conversationId: conversation.id,
+    const pendingActions = (
+      await AgentMCPAction.findAll({
+        include: [
+          {
+            model: AgentMessage,
+            as: "agentMessage",
+            required: true,
+            include: [
+              {
+                model: Message,
+                as: "message",
+                required: true,
+                where: {
+                  conversationId: conversation.id,
+                },
               },
-            },
-          ],
+            ],
+          },
+        ],
+        where: {
+          workspaceId: owner.id,
+          status: "pending",
         },
-      ],
-      where: {
-        workspaceId: owner.id,
-        executionState: "pending",
-      },
-      order: [["createdAt", "ASC"]],
-    });
+        order: [["createdAt", "ASC"]],
+      })
+    ).map((a) => new this(AgentMCPAction, a.get()));
 
     const pendingValidations: MCPActionValidationRequest[] = [];
 
@@ -120,6 +197,27 @@ export class AgentMCPActionResource extends BaseResource<AgentMCPAction> {
     }
 
     return pendingValidations;
+  }
+
+  async updateStatus(
+    status: ToolExecutionStatus
+  ): Promise<[affectedCount: number]> {
+    return this.update({ status });
+  }
+
+  static async destroy({
+    where,
+    transaction,
+  }: {
+    where: WhereOptions<AgentMCPAction>;
+    transaction?: Transaction;
+  }): Promise<Result<undefined, Error>> {
+    try {
+      await AgentMCPAction.destroy({ where, transaction });
+      return new Ok(undefined);
+    } catch (err) {
+      return new Err(normalizeError(err));
+    }
   }
 
   async delete(

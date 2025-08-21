@@ -4,6 +4,7 @@ import { MCPActionType, runToolWithStreaming } from "@app/lib/actions/mcp";
 import type { AuthenticatorType } from "@app/lib/auth";
 import { Authenticator } from "@app/lib/auth";
 import { AgentMCPAction } from "@app/lib/models/assistant/actions/mcp";
+import { AgentMCPActionResource } from "@app/lib/resources/agent_mcp_action_resource";
 import { updateResourceAndPublishEvent } from "@app/temporal/agent_loop/activities/common";
 import { buildActionBaseParams } from "@app/temporal/agent_loop/lib/action_utils";
 import { sliceConversationForAgentMessage } from "@app/temporal/agent_loop/lib/loop_utils";
@@ -51,12 +52,11 @@ export async function runToolActivity(
       step: step + 1,
     });
 
-  const action = await AgentMCPAction.findByPk(actionId);
+  const action = await AgentMCPActionResource.findByPk(actionId);
   assert(action, "Action not found");
 
-  await action.update({
-    runningState: "running",
-  });
+  const actionResource = new AgentMCPActionResource(AgentMCPAction, action);
+  await actionResource.updateStatus("running");
 
   const mcpServerId = action.toolConfiguration.toolServerId;
 
@@ -92,9 +92,7 @@ export async function runToolActivity(
   for await (const event of eventStream) {
     switch (event.type) {
       case "tool_error":
-        await action.update({
-          runningState: "errored",
-        });
+        await actionResource.updateStatus("errored");
 
         await updateResourceAndPublishEvent(
           {
@@ -118,9 +116,7 @@ export async function runToolActivity(
         return;
 
       case "tool_success":
-        await action.update({
-          runningState: "completed",
-        });
+        await actionResource.updateStatus("succeeded");
 
         await updateResourceAndPublishEvent(
           {
